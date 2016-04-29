@@ -1,50 +1,270 @@
 <html>
 <head>
     <title>Search view</title>
-    <script>
-        console.log("Source: ");
-        var url_plugin = {
-            "some_domain.com": "plugin to do search"
-        };
-
-        /*
-         for each item in url_plugin inject into data source
+    <link href="http://cdnjs.cloudflare.com/ajax/libs/foundicons/3.0.0/foundation-icons.css" rel="stylesheet"
+          type="text/css">
+    <link rel="stylesheet" href="http://dhbhdrzi4tiry.cloudfront.net/cdn/sites/foundation.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <style>
+        body {
+            font-size: 1em;
+        }
+    </style>
+    <script type="application/javascript">
+        /**
+         * jQuery.ajax mid - CROSS DOMAIN AJAX
+         * ---
+         * @author James Padolsey (http://james.padolsey.com)
+         * @version 0.11
+         * @updated 12-JAN-10
+         * ---
+         * Note: Read the README!
+         * ---
+         * @info http://james.padolsey.com/javascript/cross-domain-requests-with-jquery/
          */
 
-        // afegir listener on change del input - each new change do new search
+        jQuery.ajax = (function (_ajax) {
+
+            console.log("Ajax Custom Request xD");
+            var protocol = location.protocol;
+            var hostname = location.hostname;
+            var exRegex = RegExp(protocol + '//' + hostname);
+            var YQL = 'http' + (/^https/.test(protocol) ? 's' : '') + '://query.yahooapis.com/v1/public/yql?callback=?';
+            var query = 'select * from html where url="{URL}" and xpath="*"';
+
+            function isExternal(url) {
+                return !exRegex.test(url) && /:\/\//.test(url);
+            }
+
+            return function (o) {
+
+                var url = o.url;
+
+                if (/get/i.test(o.type) && !/json/i.test(o.dataType) && isExternal(url)) {
+
+                    // Manipulate options so that JSONP-x request is made to YQL
+
+                    o.url = YQL;
+                    o.dataType = 'json';
+
+                    o.data = {
+                        q: query.replace(
+                                '{URL}',
+                                url + (o.data ?
+                                (/\?/.test(url) ? '&' : '?') + jQuery.param(o.data)
+                                        : '')
+                        ),
+                        format: 'xml'
+                    };
+
+                    // Since it's a JSONP request
+                    // complete === success
+                    if (!o.success && o.complete) {
+                        o.success = o.complete;
+                        delete o.complete;
+                    }
+
+                    o.success = (function (_success) {
+                        return function (data) {
+
+                            if (_success) {
+                                // Fake XHR callback.
+                                _success.call(this, {
+                                    responseText: (data.results[0] || '')
+                                    // YQL screws with <script>s
+                                    // Get rid of them
+                                            .replace(/<script[^>]+?\/>|<script(.|\s)*?\/script>/gi, '')
+                                }, 'success');
+                            }
+
+                        };
+                    })(o.success);
+
+                }
+
+                return _ajax.apply(this, arguments);
+
+            };
+
+        })(jQuery.ajax);
+    </script>
+    <!--
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular.min.js"></script>
+    -->
+    <!--
+    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.0.7/angular-material.min.js"></script>
+    plugin angular, relacionado con las vista y interoperabilidad...
+    angular.module('myApp', ['ngMaterial']);
+    -->
+    <!-- inyectar platillas i widgets en vistas
+    <script src="https://ajax.googleapis.com/ajax/libs/dojo/1.10.4/dojo/dojo.js"></script>
+    -->
+
+    <!-- javascript para detectar gestos en touch pad
+    <script src="https://ajax.googleapis.com/ajax/libs/hammerjs/2.0.8/hammer.min.js"></script>
+    -->
+    <!--
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+    -->
+    <!--
+    <script src="https://ajax.googleapis.com/ajax/libs/mootools/1.6.0/mootools.min.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.3.0/prototype.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/scriptaculous/1.9.0/scriptaculous.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/spf/2.3.2/spf.js"></script>
+    -->
+    <!--
+     js framework to dectect flash player plugins and embedding flash files
+    <script src="https://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script>
+    -->
+    <!-- gpu accelerated 3d aimations
+    <script src="https://ajax.googleapis.com/ajax/libs/threejs/r69/three.min.js"></script>
+    -->
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.16/webfont.js"></script>
+    <script>
+        // fuente troll :D
+        WebFont.load({
+            google: {
+                families: ['Droid Sans', 'Droid Serif']
+            }
+        });
+    </script>
+    <script>
+        console.log("Source: ");
+        var url_plugin = [
+            "https://pirateproxy.tf/"
+        ];
 
 
+        var search = function () {
+            var query = $('#search')[0].value;
+            console.log("Search: " + query);
 
-        var search = function(){
+            var torrentTracker = 'https://pirateproxy.tf';
 
+            // https://pirateproxy.tf/search/paco/1/7/0
+            //                               key | page | orderby seeder [desc:7|asc:8] | category [video:200, application:300 ...]
+
+            jQuery.get(
+                    {
+                        url: torrentTracker + '/search/' + query + '/0/7/200',
+                        success: function (res) {
+                            // console.log(res);
+
+                            var found = $(res.responseText).find("a[class='detLink']");
+
+                            var results = $('#searchResults')[0];
+                            results.innerHTML = "";
+
+                            $(found).each(function (idx, item) {
+                                // console.log(idx, item.title.slice(12),  item.href)
+
+
+                                var resultIdx = idx;
+                                var resultTitle = item.title.slice(12);
+                                var resultRef = torrentTracker + '/torrent' + item.href.split('torrent')[1];
+                                console.log(resultIdx, resultTitle, resultRef);
+
+                                var line = document.createElement('div');
+                                line.innerHTML = "" +
+                                        "<p>" + resultIdx + "" +
+                                        "<a onclick=\"getMagnet('" + resultRef + "')\" href='#'>" + resultTitle + " " +
+                                        "</a>" +
+                                        "</p>";
+                                results.appendChild(line);
+                                // "" inyectar divs on onclick
+                            });
+//                                var page = res.responseText; // html in string format
+//                                var pageHTML = $(page);
+//                                console.log(page, pageHTML)
+                        },
+                        dataType: 'html'
+                    }
+            );
+
+
+            /*
+             $.ajax({
+             crossDomain: true,
+             dataType: 'text',
+             method: "GET",
+             url: "https://pirateproxy.tf/s/",
+             data: {q: query}
+             })
+             .done(function (msg) {
+             console.log("Data Saved: " + msg);
+             var htmlObject = $(msg);
+             console.log(htmlObject);
+             // for each line run get torrent to the url entry. :D
+             // bind on button, this additional query should be applied only if the client is interested
+             // which is another
+             });
+             */
+            // https://pirateproxy.tf/s/?q=paco&page=0&orderby=99
+        };
+
+
+        getMagnet = function (url) {
+            console.log("Magnet:", url);
+            jQuery.get(
+                    {
+                        url: url,
+                        success: function (res) {
+
+                            var xmlString = res.responseText
+                                    , parser = new DOMParser();
+                            var doc = parser.parseFromString(xmlString, "text/xml");
+                            var Iterator = document.evaluate('//*[@id="details"]/div[3]/div[1]/a[1]', doc);
+                            var magnetNode = Iterator.iterateNext();
+                            console.log(magnetNode.getAttribute('href'));
+
+                            //
+                            var renderer = window.open("render.html?"+magnetNode.getAttribute('href'), "_blank");
+                            renderer.focus();
+                        }
+                        ,
+                        dataType: 'html'
+                    }
+            )
         }
 
-
     </script>
+
+
 </head>
 <body>
 
 
-<div>
-    Data source
-    <div>
-        Checklist here
-    </div>
-</div>
-
-
-
 <hr>
 
 
-<input type="text" placeholder="search">
+<div id="searchController">
+    <input type="text" id="search" placeholder="search!" onchange="search()">
+</div>
+<hr>
+<div id="searchResults">
 
+</div>
+Hola Que Ase!
+<!--
+searchController se le inyecta todo :/
+
+<input type="text">
+
+<div>
+results
+</div>
+-->
 
 <hr>
-<div>
-    Result goes here
-</div>
 
+<script src="http://dhbhdrzi4tiry.cloudfront.net/cdn/sites/foundation.js"></script>
 </body>
+
 
 </html>
